@@ -1,0 +1,41 @@
+public function update(Request $request, $id)
+{
+    $request->validate([
+        'firstname' => 'required|string|max:255',
+        'lastname' => 'required|string|max:255',
+        'email' => 'required|email',
+        'age' => 'required|integer',
+        'position_id' => 'required|string',
+        'cv' => 'nullable|file|mimes:pdf|max:2048',
+    ]);
+
+    $employee = Employee::findOrFail($id);
+
+    // Hapus file CV lama jika ada file baru yang diunggah
+    if ($request->hasFile('cv')) {
+        if ($employee->cv) {
+            $oldCvPath = public_path('uploads/cv/' . $employee->cv);
+            if (file_exists($oldCvPath)) {
+                unlink($oldCvPath);
+            }
+        }
+
+        // Simpan file CV baru
+        $newCv = $request->file('cv');
+        $cvName = time() . '_' . $newCv->getClientOriginalName();
+        $newCv->move(public_path('uploads/cv'), $cvName);
+
+        $employee->cv = $cvName;
+    }
+
+    // Update data lainnya
+    $employee = Employee::find($id);
+    $employee->firstname = $request->firstName;
+    $employee->lastname = $request->lastName;
+    $employee->email = $request->email;
+    $employee->age = $request->age;
+    $employee->position_id = $request->position;
+    $employee->save();
+
+    return redirect()->back()->with('success', 'Employee updated successfully!');
+}
